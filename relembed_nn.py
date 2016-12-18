@@ -22,11 +22,15 @@ import tensorflow as tf
 FLAGS = None
 
 EMBED_SIZE = 100
+INIT_FILE = "initial_weights.pkl"
 
-def placeholder_inputs(hot3_dim):
-    context1_ph = tf.placeholder(tf.float32, shape=(1,hot3_dim))
-    context2_ph = tf.placeholder(tf.float32, shape=(1,hot3_dim))
-    target_placeholder = tf.placeholder(tf.int32, shape=(1,hot3_dim))
+
+
+
+def placeholder_inputs(hot3_dim, batch_size):
+    context1_ph = tf.placeholder(tf.float32, shape=(batch_size,hot3_dim))
+    context2_ph = tf.placeholder(tf.float32, shape=(batch_size,hot3_dim))
+    target_placeholder = tf.placeholder(tf.int32, shape=(batch_size,hot3_dim))
     return context1_ph, context2_ph, target_placeholder
 
 def infer_target(context1_ph, context2_ph, hot3_dim):
@@ -40,12 +44,11 @@ def infer_target(context1_ph, context2_ph, hot3_dim):
  #   encode_mat = tf.Variable(
  #       tf.truncated_normal([hot3_dim, EMBED_SIZE],
  #                           stddev=1.0 / math.sqrt(float(hot3_dim))))
-    encode_mat = tf.Variable(
-        tf.random_uniform([hot3_dim, EMBED_SIZE],
-                            -1.0, 1.0))
 
-#    encode_mat = tf.Variable(
-#        tf.zeros([hot3_dim, EMBED_SIZE]))
+    weights = pickle.load(open(INIT_FILE, 'rb'))
+    weights = weights.astype(np.float32)
+    encode_mat = tf.Variable(weights, expected_shape=[hot3_dim, EMBED_SIZE])
+
                           
    
     decode_mat = tf.Variable(
@@ -72,8 +75,9 @@ def loss(output, target_ph):
     Returns:
     loss: Loss tensor of type float.
     """
-    target_ph = tf.to_int64(target_ph)
-    cross_entropy = tf.nn.softmax_cross_entropy_with_logits(output, target_ph)
+    target_ph = tf.to_float(target_ph)
+#    cross_entropy = tf.nn.softmax_cross_entropy_with_logits(output, target_ph)
+    cross_entropy = tf.nn.sigmoid_cross_entropy_with_logits(output, target_ph)
     loss = tf.reduce_mean(cross_entropy)
     return loss
 
@@ -91,14 +95,14 @@ def training(loss, learning_rate):
     return train_op
 
 
-def fill_feed_dict(tuple_data, c1ph, c2ph, target_ph, sample_index):
+def fill_feed_dict(tuple_data, c1ph, c2ph, target_ph, sample_index, batch_size):
     """
     Pass in TupleData object tuple_data,
     and context 1, context2, context3 placeholders
     as well as the sample index
     """
 
-    context1, context2, target = tuple_data.get_sample(sample_index)
+    context1, context2, target = tuple_data.get_sample(sample_index, batch_size)
     #context1 = numpy.array([context1])
     #context2 = numpy.array([context2])
     #target = numpy.array([target])
@@ -120,10 +124,12 @@ def run_training():
     hot3_dim = tuple_data.tuples[0].shape[1]
     #hot3_dim = tuple_data.tuples.shape[1]
 
-    learning_rate = 0.0005 
+    learning_rate = 0.01 
+
+    batch_size = 100
 
     with tf.Graph().as_default():
-        con1ph, con2ph, target_ph = placeholder_inputs(hot3_dim)
+        con1ph, con2ph, target_ph = placeholder_inputs(hot3_dim, batch_size)
 
         #computation to guess the target embedding given the context
         outputs, embeddings = infer_target(con1ph, con2ph, hot3_dim)
@@ -148,16 +154,22 @@ def run_training():
         EPOCHS = 1
         iteration = 0
         avg_loss = 0
+        batches = tuple_data.windows // batch_size
         for i in range(EPOCHS):
-            order = np.arange(tuple_data.windows)
-            #np.random.shuffle(order)
-            for step in order:
+            order = np.arange(tuple_data.windows // batch_size)
+            np.random.shuffle(order)
+            for step in order[:1000]:
+
+                print(embeddings.eval(session=sess))
+                print("------------------------------")
+
                 
-                    
+      #          print(embeddings.eval(session=sess))
+      #          print("--------------------------------")
 
                 # Fill a feed dictionary with the actual set of images and labels
                 # for this particular training step.
-                feed_dict = fill_feed_dict(tuple_data, con1ph, con2ph, target_ph, step)
+                feed_dict = fill_feed_dict(tuple_data, con1ph, con2ph, target_ph, step, batch_size)
 
                 # Run one step of the model.  The return values are the activations
                 # from the `train_op` (which is discarded) and the `loss` Op.  To
@@ -171,15 +183,19 @@ def run_training():
                 _, loss_value = sess.run([train_op, loss_op],
                                        feed_dict=feed_dict)
 
+                print(loss_value)
                 avg_loss = avg_loss + loss_value
-                if iteration % 500 == 0:
-                    avg_loss = avg_loss / 500
-                    print(avg_loss)
+                if iteration % 100 == 0:
+                    avg_loss = avg_loss / 100
+                    print("Iteration: {}, Loss {}".format(iteration, avg_loss))
+                    print(embeddings.eval(session=sess))
+                    print("------------------------------")
                     avg_loss = 0
                 iteration = iteration + 1
 
         print(embeddings.eval(session=sess))
-        pickle.dump(embeddings, open('OUTPUT_EMBED.pkl', 'wb'))
+        pickle.dump(embeddings.eval(session=sess), open('OUTPUT_EMBED.pkl', 'wb'))
+
 
 
 if __name__ == "__main__":
