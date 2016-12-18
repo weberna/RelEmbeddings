@@ -24,36 +24,32 @@ class TupleData:
         self.windows = self.tuples.shape[0] - (2*self.window_size) #how many windows of size 4 we are allowed 
         self.current_sample = 0
 
-    def get_sample(self, index=None):
+    def get_sample(self, index, batch_size):
         """
-            Get a ith (index) training sample from the data, this includes 
+            Get a ith (index) training batch from the data, this includes 
             a the two surronding tuples and the center tuple 
             as the target.
-            If index is not passed in, just get the next sample as determined by current_sample
             Convert the sparse arrays to regular numpy arrays
             Return tuple 
             (context1, context2, target)
         """
-        if index:
-            target_index = index + (self.window_size) #the index of the target tuple
-            context1 = self.tuples[target_index - self.window_size].toarray()
-            context2 = self.tuples[target_index + self.window_size].toarray()
-            target = self.tuples[target_index].toarray()
-            #context1 = self.tuples[target_index - self.window_size]
-            #context2 = self.tuples[target_index + self.window_size]
-            #target = self.tuples[target_index]
+        index = index*batch_size
+        target_index = index + (self.window_size) #the index of the target tuple
+        context1 = self.tuples[target_index - self.window_size].toarray()
+        context2 = self.tuples[target_index + self.window_size].toarray()
+        target = self.tuples[target_index].toarray()
 
-        else: 
-            target_index = self.current_sample + (self.window_size) #the index of the target tuple
-            context1 = self.tuples[target_index - self.window_size].toarray()
-            context2 = self.tuples[target_index + self.window_size].toarray()
-            target = self.tuples[target_index].toarray()
-            #context1 = self.tuples[target_index - self.window_size]
-            #context2 = self.tuples[target_index + self.window_size]
-            #target = self.tuples[target_index]
+        for i in range(batch_size-1): #get the rest in the batch
+            target_index += 1 
+            next_context1 = self.tuples[target_index - self.window_size].toarray()
+            next_context2 = self.tuples[target_index + self.window_size].toarray()
+            next_target = self.tuples[target_index].toarray()
+            context1 = np.concatenate((context1, next_context1))
+            context2 = np.concatenate((context2, next_context2))
+            target = np.concatenate((target, next_target))
 
-            self.current_sample = self.current_sample + 1
-            self.current_sample = self.current_sample % self.windows
+            
+        
         return (context1, context2, target)
 
 def get_tuple_data(filename, word_dict_file, rel_dict_file):

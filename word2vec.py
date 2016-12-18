@@ -34,6 +34,8 @@ import tensorflow as tf
 url = 'http://mattmahoney.net/dc/'
 
 zippedfile = sys.argv[1]
+embed_file = sys.argv[2]
+edict_file = sys.argv[3]
 
 def maybe_download(filename, expected_bytes):
   """Download a file if not present, and make sure it's the right size."""
@@ -71,7 +73,9 @@ print('Data size', len(words))
 
 # Step 2: Build the dictionary and replace rare words with UNK token.
 #originally 200
-vocabulary_size = 51661 
+#vocabulary_size = 51661 
+#vocabulary_size = 50000
+vocabulary_size = 20000
 
 
 def build_dataset(words):
@@ -196,8 +200,8 @@ print("****************")
 print(reverse_dictionary.keys())
 print(valid_examples)
 # Step 5: Begin training.
-#num_steps = 100001
-num_steps = 1000
+num_steps = 100001
+#num_steps = 1000
 
 with tf.Session(graph=graph) as session:
   # We must initialize all variables before we use them.
@@ -234,10 +238,11 @@ with tf.Session(graph=graph) as session:
 #          close_word = reverse_dictionary[nearest[k]]
 #          log_str = "%s %s," % (log_str, close_word)
 #        print(log_str)
-  final_embeddings = normalized_embeddings.eval()
+#  final_embeddings = normalized_embeddings.eval()
+  final_embeddings = embeddings.eval()
 
-  dfile = open("edictfile.pkl", 'wb')
-  efile = open("embeddfile.pkl", 'wb')
+  dfile = open(edict_file, 'wb')
+  efile = open(embed_file, 'wb')
   pickle.dump(final_embeddings, efile)
   pickle.dump(dictionary,dfile)
   efile.close()

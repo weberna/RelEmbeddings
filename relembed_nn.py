@@ -22,16 +22,25 @@ import tensorflow as tf
 FLAGS = None
 
 EMBED_SIZE = 100
-INIT_FILE = "initial_weights.pkl"
+#INIT_FILE = "initial_weights.pkl"
+INIT_FILE = "initial_weights_normalized.pkl"
 
 
+REL_COUNT = 15743
+WORD_COUNT = 48008
 
 
 def placeholder_inputs(hot3_dim, batch_size):
     context1_ph = tf.placeholder(tf.float32, shape=(batch_size,hot3_dim))
     context2_ph = tf.placeholder(tf.float32, shape=(batch_size,hot3_dim))
-    target_placeholder = tf.placeholder(tf.int32, shape=(batch_size,hot3_dim))
-    return context1_ph, context2_ph, target_placeholder
+    #target_placeholder = tf.placeholder(tf.int32, shape=(batch_size,hot3_dim))
+    target_arg1_ph = tf.placeholder(tf.int32, shape=(batch_size,WORD_COUNT))
+    target_rel_ph = tf.placeholder(tf.int32, shape=(batch_size,REL_COUNT))
+    target_arg2_ph = tf.placeholder(tf.int32, shape=(batch_size,WORD_COUNT))
+
+#    return context1_ph, context2_ph, target_placeholder
+    return context1_ph, context2_ph, target_arg1_ph, target_rel_ph, target_arg2_ph
+
 
 def infer_target(context1_ph, context2_ph, hot3_dim):
     """
@@ -51,23 +60,32 @@ def infer_target(context1_ph, context2_ph, hot3_dim):
 
                           
    
-    decode_mat = tf.Variable(
-        tf.truncated_normal([EMBED_SIZE, hot3_dim],
-                            stddev=1.0 / math.sqrt(float(EMBED_SIZE))))
+#    decode_mat = tf.Variable(tf.truncated_normal([EMBED_SIZE, hot3_dim],stddev=1.0 / math.sqrt(float(EMBED_SIZE))))
+    decode_arg1_mat = tf.Variable(tf.truncated_normal([EMBED_SIZE, WORD_COUNT],stddev=1.0 / math.sqrt(float(EMBED_SIZE))))
+    decode_rel_mat = tf.Variable(tf.truncated_normal([EMBED_SIZE, REL_COUNT],stddev=1.0 / math.sqrt(float(EMBED_SIZE))))
+    decode_arg2_mat = tf.Variable(tf.truncated_normal([EMBED_SIZE, WORD_COUNT],stddev=1.0 / math.sqrt(float(EMBED_SIZE))))
 
-    biases = tf.Variable(tf.zeros([hot3_dim]))
+    #biases = tf.Variable(tf.zeros([hot3_dim]))
+    biases_a1 = tf.Variable(tf.zeros([WORD_COUNT]))
+    biases_rel = tf.Variable(tf.zeros([REL_COUNT]))
+    biases_a2 = tf.Variable(tf.zeros([WORD_COUNT]))
 
     embed1 = tf.matmul(context1_ph, encode_mat)
     embed2 = tf.matmul(context2_ph, encode_mat)
     average_embed = (embed1 + embed2) / 2
 
+
     
-    output = tf.matmul(average_embed, decode_mat) + biases
-    return (output, encode_mat)
+    #output = tf.matmul(average_embed, decode_mat) + biases
+    a1_output = tf.matmul(average_embed, decode_arg1_mat) + biases_a1
+    rel_output = tf.matmul(average_embed, decode_rel_mat) + biases_rel
+    a2_output = tf.matmul(average_embed, decode_arg2_mat) + biases_a2
+#    return (output, encode_mat)
+    return a1_output, rel_output, a2_output, encode_mat
 
 
 
-def loss(output, target_ph):
+def loss(a1_output, rel_output, a2_output, a1_target_ph, rel_target_ph, a2_target_ph):
     """Calculates the loss from the output and the target.
     Args:
     logits: Logits tensor, float - [batch_size, NUM_CLASSES].
@@ -75,11 +93,24 @@ def loss(output, target_ph):
     Returns:
     loss: Loss tensor of type float.
     """
-    target_ph = tf.to_float(target_ph)
-#    cross_entropy = tf.nn.softmax_cross_entropy_with_logits(output, target_ph)
-    cross_entropy = tf.nn.sigmoid_cross_entropy_with_logits(output, target_ph)
-    loss = tf.reduce_mean(cross_entropy)
-    return loss
+    
+    a1_target_ph = tf.to_int64(a1_target_ph)
+    rel_target_ph = tf.to_int64(rel_target_ph)
+    a2_target_ph = tf.to_int64(a2_target_ph)
+
+    a1_cross_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(a1_output, a1_target_ph))
+    rel_cross_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(rel_output, rel_target_ph))
+    a2_cross_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(a2_output, a2_target_ph))
+
+    loss_avg = (a1_cross_entropy + rel_cross_entropy + a2_cross_entropy) / 3
+
+    #target_ph = tf.to_int64(target_ph)
+    #cross_entropy = tf.nn.softmax_cross_entropy_with_logits(output, target_ph)
+    #loss = tf.reduce_mean(cross_entropy)
+    
+    
+
+    return loss_avg
 
 
 def training(loss, learning_rate):
@@ -95,7 +126,7 @@ def training(loss, learning_rate):
     return train_op
 
 
-def fill_feed_dict(tuple_data, c1ph, c2ph, target_ph, sample_index, batch_size):
+def fill_feed_dict(tuple_data, c1ph, c2ph, a1_target_ph, rel_target_ph, a2_target_ph, sample_index, batch_size):
     """
     Pass in TupleData object tuple_data,
     and context 1, context2, context3 placeholders
@@ -103,13 +134,18 @@ def fill_feed_dict(tuple_data, c1ph, c2ph, target_ph, sample_index, batch_size):
     """
 
     context1, context2, target = tuple_data.get_sample(sample_index, batch_size)
+    a1 = target[:, :48008]
+    rel = target[:, 48008:63751]
+    a2 = target[:, 63751:]
     #context1 = numpy.array([context1])
     #context2 = numpy.array([context2])
     #target = numpy.array([target])
     feed_dict = {
       c1ph: context1,
       c2ph: context2,
-      target_ph: target
+      a1_target_ph: a1,
+      rel_target_ph: rel,
+      a2_target_ph: a2
     }
     return feed_dict
 
@@ -124,19 +160,19 @@ def run_training():
     hot3_dim = tuple_data.tuples[0].shape[1]
     #hot3_dim = tuple_data.tuples.shape[1]
 
-    learning_rate = 0.01 
+    learning_rate = 1.0
 
-    batch_size = 100
+    batch_size = 50
 
     with tf.Graph().as_default():
-        con1ph, con2ph, target_ph = placeholder_inputs(hot3_dim, batch_size)
+        con1ph, con2ph, a1_target_ph, rel_target_ph, a2_target_ph  = placeholder_inputs(hot3_dim, batch_size)
 
         #computation to guess the target embedding given the context
-        outputs, embeddings = infer_target(con1ph, con2ph, hot3_dim)
+        a1_output, rel_output, a2_output, embeddings = infer_target(con1ph, con2ph, hot3_dim)
 #        outputs = tf.Print(outputs, [outputs], "Outputs: ") 
 
         #Get the loss for the above
-        loss_op = loss(outputs, target_ph)
+        loss_op = loss(a1_output, rel_output, a2_output,a1_target_ph, rel_target_ph, a2_target_ph)
 
         # Add to the Graph the Ops that calculate and apply gradients.
         train_op = training(loss_op, learning_rate)
@@ -158,10 +194,12 @@ def run_training():
         for i in range(EPOCHS):
             order = np.arange(tuple_data.windows // batch_size)
             np.random.shuffle(order)
-            for step in order[:1000]:
+            print(len(order))
+            for step in order[:9000]:
+            #for step in order:
 
-                print(embeddings.eval(session=sess))
-                print("------------------------------")
+#                print(embeddings.eval(session=sess))
+#                print("------------------------------")
 
                 
       #          print(embeddings.eval(session=sess))
@@ -169,7 +207,7 @@ def run_training():
 
                 # Fill a feed dictionary with the actual set of images and labels
                 # for this particular training step.
-                feed_dict = fill_feed_dict(tuple_data, con1ph, con2ph, target_ph, step, batch_size)
+                feed_dict = fill_feed_dict(tuple_data, con1ph, con2ph, a1_target_ph, rel_target_ph, a2_target_ph, step, batch_size)
 
                 # Run one step of the model.  The return values are the activations
                 # from the `train_op` (which is discarded) and the `loss` Op.  To
