@@ -88,13 +88,18 @@ if __name__ == "__main__":
     word_dict = pickle.load(open(wordfile, 'rb'))
     tuple_data =  pickle.load(open(tuple_file, 'rb'))
 
-    tuple_data.tuples = tuple_data.tuples[:10000]
+    tuple_data.tuples = tuple_data.tuples[:100000]
     
 
     rev_rel_dict = dict(zip(rel_dict.values(),rel_dict.keys()))
     rev_word_dict = dict(zip(word_dict.values(),word_dict.keys()))
     embed_dict = get_tuple_embeddings(embeds, tuple_data, rel_dict, word_dict)
 
+    pickle.dump(embed_dict, open("FULL_EMBED_DICT.pkl", 'wb'))
+
+    
+
 
     print(most_similar(embed_dict, tuple_data, 0, 10, rev_rel_dict, rev_word_dict))
+
 
