@@ -88,7 +88,7 @@ if __name__ == "__main__":
     word_dict = pickle.load(open(wordfile, 'rb'))
     tuple_data =  pickle.load(open(tuple_file, 'rb'))
 
-    tuple_data.tuples = tuple_data.tuples[:100000]
+    tuple_data.tuples = tuple_data.tuples[:300000]
     
 
     rev_rel_dict = dict(zip(rel_dict.values(),rel_dict.keys()))

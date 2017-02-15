@@ -64,14 +64,15 @@ def get_tuple_data(filename, word_dict_file, rel_dict_file):
     return TupleData(data)
 
 
-def load_tuples(filename, word_dict, rel_dict):
+def load_tuples(filename, word_dict, rel_dict, rel_word_limit=5):
     """
         Read in the tuple data, convert 
         it to 3 hot vector, and return a list of numpy arrays
+        Only use relations that are less than rel_word_limit words
     """
     data = []
 
-    REL_WORD_LIMIT = 5
+    REL_WORD_LIMIT = rel_word_limit
     with open(filename) as f:
         for line in f:
             if line and not line.isspace():

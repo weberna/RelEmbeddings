@@ -1,0 +1,12 @@
+Pipeline Process
+
+-First create the word and relation dictionary. These give mappings from words/relations to indexes that enables one to 
+create vector data from the tuples. Use python3 tuple_file rel_limit 
+tuple_file is the text file containing the tuples, rel_limit is how many times a relation should appear in order to use it, we use 5
+
+-Next create the sparse numpy arrarys containing the vector representation of the tuples using the previously created dictonaries
+use python3 tuple_reader tuple_file
+This creates a pickle file TupleFileOut containing the serialized object
+
+-Next use the pretrained relation and word embeddings to create a preinitialized weight matrix for the final neural net model
+python3 init_weights <word or rel dict> <init_edict_file> <init_embed_file> <outfile> <Use_Rels = yes or no> 

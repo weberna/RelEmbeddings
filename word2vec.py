@@ -74,8 +74,8 @@ print('Data size', len(words))
 # Step 2: Build the dictionary and replace rare words with UNK token.
 #originally 200
 #vocabulary_size = 51661 
-#vocabulary_size = 50000
-vocabulary_size = 20000
+vocabulary_size = 200000
+#vocabulary_size = 20000
 
 
 def build_dataset(words):
@@ -138,7 +138,9 @@ for i in range(8):
 # Step 4: Build and train a skip-gram model.
 
 batch_size = 100
-embedding_size = 100  # Dimension of the embedding vector.
+#embedding_size = 100  # Dimension of the embedding vector.
+embedding_size = 150  # Dimension of the embedding vector.
+#embedding_size = 128  # Dimension of the embedding vector.
 skip_window = 1       # How many words to consider left and right.
 num_skips = 2         # How many times to reuse an input to generate a label.
 
@@ -200,7 +202,8 @@ print("****************")
 print(reverse_dictionary.keys())
 print(valid_examples)
 # Step 5: Begin training.
-num_steps = 100001
+#num_steps = 100001
+num_steps = 7000001
 #num_steps = 1000
 
 with tf.Session(graph=graph) as session:
@@ -238,8 +241,8 @@ with tf.Session(graph=graph) as session:
 #          close_word = reverse_dictionary[nearest[k]]
 #          log_str = "%s %s," % (log_str, close_word)
 #        print(log_str)
-#  final_embeddings = normalized_embeddings.eval()
-  final_embeddings = embeddings.eval()
+  final_embeddings = normalized_embeddings.eval()
+#  final_embeddings = embeddings.eval()
 
   dfile = open(edict_file, 'wb')
   efile = open(embed_file, 'wb')

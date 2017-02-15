@@ -21,13 +21,15 @@ import tensorflow as tf
 # Basic model parameters as external flags.
 FLAGS = None
 
-EMBED_SIZE = 100
-#INIT_FILE = "initial_weights.pkl"
-INIT_FILE = "initial_weights_normalized.pkl"
+#EMBED_SIZE = 100
+EMBED_SIZE = 150
+
+INIT_FILE = "initial_weights.pkl"
+#INIT_FILE = "initial_weights_normalized.pkl"
 
 
-REL_COUNT = 15743
-WORD_COUNT = 48008
+REL_COUNT = 46747
+WORD_COUNT = 113828
 
 
 def placeholder_inputs(hot3_dim, batch_size):
@@ -134,9 +136,9 @@ def fill_feed_dict(tuple_data, c1ph, c2ph, a1_target_ph, rel_target_ph, a2_targe
     """
 
     context1, context2, target = tuple_data.get_sample(sample_index, batch_size)
-    a1 = target[:, :48008]
-    rel = target[:, 48008:63751]
-    a2 = target[:, 63751:]
+    a1 = target[:, :WORD_COUNT]
+    rel = target[:,WORD_COUNT:WORD_COUNT + REL_COUNT]
+    a2 = target[:, WORD_COUNT + REL_COUNT:]
     #context1 = numpy.array([context1])
     #context2 = numpy.array([context2])
     #target = numpy.array([target])
@@ -160,9 +162,10 @@ def run_training():
     hot3_dim = tuple_data.tuples[0].shape[1]
     #hot3_dim = tuple_data.tuples.shape[1]
 
-    learning_rate = 1.0
+#    learning_rate = 1.0
+    learning_rate = 0.5
 
-    batch_size = 50
+    batch_size = 100
 
     with tf.Graph().as_default():
         con1ph, con2ph, a1_target_ph, rel_target_ph, a2_target_ph  = placeholder_inputs(hot3_dim, batch_size)
@@ -187,7 +190,7 @@ def run_training():
 
         # Start the training loop.
         #for step in xrange(FLAGS.max_steps):
-        EPOCHS = 1
+        EPOCHS = 2
         iteration = 0
         avg_loss = 0
         batches = tuple_data.windows // batch_size
@@ -195,8 +198,8 @@ def run_training():
             order = np.arange(tuple_data.windows // batch_size)
             np.random.shuffle(order)
             print(len(order))
-            for step in order[:9000]:
-            #for step in order:
+            #for step in order[:9000]:
+            for step in order:
 
 #                print(embeddings.eval(session=sess))
 #                print("------------------------------")

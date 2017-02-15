@@ -10,6 +10,10 @@ Oragnization_tag ="_type_organization"
 Unknown_tag = "_UNK_"
 
 def cleaning(ATypes, A):
+    """
+    Replace entities with a person tag if a proper name, 
+    replace locations with a location tag if a proper location name
+    """
     tup_types = ATypes.split(',')
     for types in tup_types:
         type_name = types.split(':')[0].strip().lower()
@@ -67,6 +71,7 @@ def normalize_tuple(rel_line):
     A2Types = split_line[7]
     A1 = cleaning(A1Types,A1)
     A2 = cleaning(A2Types,A2)
+    #strip any leading and trailing spaces and lowercase all words
     return (A1.strip().lower(), rel.strip().lower(), A2.strip().lower())
 
 
@@ -138,7 +143,7 @@ def get_maps(tuple_file, word_dict_file="word.pkl", rel_dict_file="rel.pkl"):
     pickle.dump( word_dict, open( word_dict_file, "wb" ) )
     pickle.dump( rel_dict, open( rel_dict_file, "wb" ) )
 
-def get_maps_filter(tuple_file, rel_thresh, word_thresh=0, word_dict_file="word.pkl", rel_dict_file="rel.pkl"):
+def get_maps_filter(tuple_file, rel_thresh, rel_word_limit = 5, word_thresh=0, word_dict_file="word.pkl", rel_dict_file="rel.pkl"):
 
     """
         create the dictionary maps for 
@@ -153,7 +158,7 @@ def get_maps_filter(tuple_file, rel_thresh, word_thresh=0, word_dict_file="word.
     rel_counts = {}
 #    word_counts = {}
     
-    REL_WORD_LIMIT = 5
+    REL_WORD_LIMIT = rel_word_limit  #ignore relations with more than REL_WORD_LIMIT words
 
     with open(tuple_file) as f:
 
@@ -182,6 +187,7 @@ def get_maps_filter(tuple_file, rel_thresh, word_thresh=0, word_dict_file="word.
 
    #                 print(A2)
    #                 print("------")
+                  
                     A1 = A1.lower()
                     A2 = A2.lower()
 

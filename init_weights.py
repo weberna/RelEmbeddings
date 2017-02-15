@@ -9,17 +9,17 @@ def init_weights(word_dict, other_dict, orig_embed, embed_size, using_rels=False
             my_rel = word
             rel = word.replace(' ', '_')
             if rel in other_dict.keys(): #if this word has an embedding in orig_embed
-                print("YEAH")
+                print("Hit: {}".format(rel))
                 weights[word_dict[my_rel]] = orig_embed[other_dict[rel]] #init this embedding 
 
         elif word in other_dict.keys(): #if this word has an embedding in orig_embed
-            print("YEAH")
+            print("Hit: {}".format(word))
             weights[word_dict[word]] = orig_embed[other_dict[word]] #init this embedding 
     return weights
 
 
 if __name__ == "__main__":
-    word_file = sys.argv[1]
+    word_file = sys.argv[1]  #word map file (dictionary), map words/rels to indices
     other_dict_file = sys.argv[2]
     embed_file = sys.argv[3]
     out_file = sys.argv[4]
@@ -29,6 +29,7 @@ if __name__ == "__main__":
     embeddings = pkl.load(open(embed_file, "rb"))
     words_size, embed_size = embeddings.shape
     if use_rels == "yes":
+        print("Using Relations")
         weights = init_weights(word_dict, embed_dict, embeddings, embed_size, True)
     else:
         weights = init_weights(word_dict, embed_dict, embeddings, embed_size)

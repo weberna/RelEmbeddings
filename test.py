@@ -9,8 +9,6 @@ import sys
 from tuple_reader import TupleData
 
 
-REL_COUNT = 15743
-WORD_COUNT = 48008
 
 def most_similar(embed_dict, tuple_data, target, k, rev_rel_dict, rev_word_dict):
     """
@@ -35,14 +33,18 @@ def most_similar(embed_dict, tuple_data, target, k, rev_rel_dict, rev_word_dict)
         dist_dict[rel_index] = dist
 
     
-    li = []
+    li = [] #list of similar tuples
     li2 = []
-    for item in sorted(dist_dict.items(), key=lambda tup: tup[1]):
+    dists = sorted(dist_dict.items(), key=lambda tup: tup[1]) #list of tuples sorted by cosine distance to target
+    #for item in sorted(dist_dict.items(), key=lambda tup: tup[1]):
+    for item in dists:
         tup = tuples[item[0]].toarray()[0]
         tup_txt = hot3_to_tuple(tup, rev_rel_dict, rev_word_dict)
         if tup_txt not in li2 and tup_txt != targ_txt and not share_args(targ_vect,  tup, words, rels):
             li.append((tup_txt, item[1]))
             li2.append(tup_txt)
+        if len(li) > k: 
+            return li[:k]
 
 
     return li[:k]
@@ -124,13 +126,22 @@ if __name__ == "__main__":
     tuple_data =  pickle.load(open(tuple_file, 'rb'))
 
     print(tuple_data.tuples.shape)
-    tuple_data.tuples = tuple_data.tuples[:100000]
+    tuple_data.tuples = tuple_data.tuples[:300000]
     
 
     rev_rel_dict = dict(zip(rel_dict.values(),rel_dict.keys()))
     rev_word_dict = dict(zip(word_dict.values(),word_dict.keys()))
     embed_dict = pickle.load(open("FULL_EMBED_DICT.pkl", 'rb'))
+
 #    embed_dict = get_tuple_embeddings(embeds, tuple_data, rel_dict, word_dict)
+    
+    samples = np.random.random_integers(0, 299999, 50)
+    for i in samples:
+        print(most_similar(embed_dict, tuple_data, i, 20, rev_rel_dict, rev_word_dict))
+        print("---------------------------------")
+        print("\n")
+  
+#    print(most_similar(embed_dict, tuple_data, 4, 20, rev_rel_dict, rev_word_dict))
 
 
     
@@ -140,48 +151,8 @@ if __name__ == "__main__":
 #        print("{} = {}".format(hot3_to_tuple(hot3, rev_rel_dict, rev_word_dict), count))
 #        count += 1
 
-    print(most_similar(embed_dict, tuple_data, 13, 10, rev_rel_dict, rev_word_dict))
-    print("---------------------------------")
-    print(most_similar(embed_dict, tuple_data, 5, 10, rev_rel_dict, rev_word_dict))
-    print("---------------------------------")
-    print(most_similar(embed_dict, tuple_data, 397, 10, rev_rel_dict, rev_word_dict))
-    print("---------------------------------")
-    print(most_similar(embed_dict, tuple_data, 867, 10, rev_rel_dict, rev_word_dict))
-    print("---------------------------------")
-    print(most_similar(embed_dict, tuple_data, 218, 10, rev_rel_dict, rev_word_dict))
-    print("---------------------------------")
-
-    print(most_similar(embed_dict, tuple_data, 675, 10, rev_rel_dict, rev_word_dict))
-    print("---------------------------------")
-    print(most_similar(embed_dict, tuple_data, 675, 10, rev_rel_dict, rev_word_dict))
-    print("---------------------------------")
-    print(most_similar(embed_dict, tuple_data, 998, 10, rev_rel_dict, rev_word_dict))
-    print("---------------------------------")
-    print(most_similar(embed_dict, tuple_data, 3091, 10, rev_rel_dict, rev_word_dict))
-    print("---------------------------------")
-
-    print(most_similar(embed_dict, tuple_data, 3091, 10, rev_rel_dict, rev_word_dict))
-    print("---------------------------------")
-
-    print(most_similar(embed_dict, tuple_data, 3451, 10, rev_rel_dict, rev_word_dict))
-    print("---------------------------------")
-
-    print(most_similar(embed_dict, tuple_data, 5333, 10, rev_rel_dict, rev_word_dict))
-    print("---------------------------------")
-
-    print(most_similar(embed_dict, tuple_data, 20727, 10, rev_rel_dict, rev_word_dict))
-    print("---------------------------------")
-
-    print(most_similar(embed_dict, tuple_data, 19525, 10, rev_rel_dict, rev_word_dict))
-    print("---------------------------------")
-    print(most_similar(embed_dict, tuple_data, 17258, 10, rev_rel_dict, rev_word_dict))
-    print("---------------------------------")
-
-    print(most_similar(embed_dict, tuple_data, 18965, 10, rev_rel_dict, rev_word_dict))
-    print("---------------------------------")
-
-    print(most_similar(embed_dict, tuple_data, 3948, 10, rev_rel_dict, rev_word_dict))
-    print("---------------------------------")
+#    print(most_similar(embed_dict, tuple_data, 3948, 10, rev_rel_dict, rev_word_dict))
+#    print("---------------------------------")
 
 
 
